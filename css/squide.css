@@ -1,0 +1,93 @@
+.squide-value{
+ margin: 0.1em 0.5em;
+ padding: 0.1em;
+ border: 1px solid #eee;
+ min-width: 2em;
+}
+
+.squide-pair, .squide-block{
+ margin: 0.5em;
+ display: block;
+ margin-left: 1em;
+}
+
+.squide-inactive{
+ display: none;
+}
+
+.squide-show{
+ cursor: pointer
+}
+
+.squide-token{
+ display: inline;
+}
+
+.squide-quote{
+ font-weight: bold;
+ color: #339;
+}
+
+.squide-popen, .squide-pclose{
+ color: #bbb;
+}
+
+.squide-bopen, .squide-bclose{
+ color: #bbb;
+}
+
+.squide-symbol{
+ font-style: italic;
+ color: #339;
+}
+
+.squide-bool, .squide-inert, .squide-ignore{
+ color: #393;
+}
+
+.squide-int, .squide-float{
+ color: #933;
+}
+
+.squide-block>.squide-value{
+ display: block;
+ margin-left: 1em;
+}
+
+.squide-context-menu{
+ background-color: #fff;
+ border: 1px solid #333;
+ padding: 0.3em;
+}
+
+.squide-context-menu ul{
+ list-style-type: none;
+ margin: 0;
+ padding: 0;
+}
+
+.squide-context-menu li{
+ cursor: pointer;
+ border: 1px solid #999;
+ margin: 0.2em 0;
+}
+
+.list-item-selected{
+ background-color: #ddd;
+}
+
+.squide-context-menu li a{
+ text-decoration: none;
+ color: #333;
+}
+
+.block-add-button, .pair-add-button{
+ font-size: 0.5em;
+ padding: 0;
+ margin: 0;
+}
+
+.block-add-button{
+ display: table;
+ margin-left: 1em;
+}
