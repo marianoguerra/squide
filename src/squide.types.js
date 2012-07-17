@@ -140,14 +140,16 @@
         };
     }
 
-    function makeShowPart(value) {
+    function makeShowPart(value, onClick) {
+        onClick = onClick || function () {
+            switchActive($(this).parent());
+        };
+
         return {
             "span": {
                 "class": join(activeCls, showCls),
                 "$childs": quote(value || ""),
-                "$click": function () {
-                    switchActive($(this).parent());
-                }
+                "$click": onClick
             }
         };
     }
@@ -183,7 +185,7 @@
 
     obj.singleType = function (value, type, showPart) {
         if (showPart === undefined) {
-            showPart = makeShowPart(value);
+            showPart = makeShowPart(value, function () {});
         }
 
         return {
