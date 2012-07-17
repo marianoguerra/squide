@@ -14,5 +14,5 @@ marianoguerra
 license?
 --------
 
-MIT + optional beer for the creator
+LGPL + optional beer for the creator
 
