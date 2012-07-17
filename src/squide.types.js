@@ -395,7 +395,7 @@
 
         if (value instanceof Types.Type) {
 
-            if (value instanceof Types.Pair) {
+            if (value instanceof Types.Pair || value instanceof Types.Nil) {
 
                 if (obj.isBlock(value)) {
                     builder = obj.Block;
@@ -470,7 +470,7 @@
         var callValue, items;
 
         if (value instanceof Types.Type) {
-            if (value instanceof Types.Pair) {
+            if (value instanceof Types.Pair || value instanceof Types.Nil) {
                 items = Types.util.pairToArray(value);
 
                 if (obj.isBlock(value)) {
