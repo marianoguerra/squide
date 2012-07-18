@@ -69,6 +69,16 @@
         }
     }
 
+    function onHover(event) {
+        var root = $(this);
+
+        if (event.type === "mouseenter") {
+            root.children("button").removeClass("invisible");
+        } else {
+            root.children("button").addClass("invisible");
+        }
+    }
+
     function onValueKeyUp(event) {
         var
             showWidget,
@@ -319,7 +329,7 @@
         }
 
         addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes);
-        addButton.button["class"] = "pair-add-button";
+        addButton.button["class"] = "pair-add-button invisible";
 
         childs.push(addButton);
         childs.push(close);
@@ -329,6 +339,8 @@
                 "tabindex": 0,
                 "@type": "pair",
                 "$keyup": onValueKeyUp,
+                "$mouseenter": onHover,
+                "$mouseleave": onHover,
                 "class": "squide-pair squide-value",
                 "$childs": childs
             }
@@ -361,7 +373,7 @@
         }
 
         addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes);
-        addButton.button["class"] = "block-add-button";
+        addButton.button["class"] = "block-add-button invisible";
 
         childs.push(addButton);
         childs.push(close);
@@ -370,6 +382,8 @@
             "div": {
                 "tabindex": 0,
                 "@type": "block",
+                "$mouseenter": onHover,
+                "$mouseleave": onHover,
                 "$keyup": onValueKeyUp,
                 "class": "squide-block squide-value",
                 "$childs": childs

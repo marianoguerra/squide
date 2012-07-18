@@ -1,8 +1,11 @@
 .squide-value{
- margin: 0.1em 0.5em;
- padding: 0.1em;
+ margin: 2px 0.5em;
+ padding: 2px;
+}
+
+.squide-value:hover{
  border: 1px solid #eee;
- min-width: 2em;
+ padding: 1px;
 }
 
 .squide-pair, .squide-block{
@@ -90,4 +93,8 @@
 .block-add-button{
  display: table;
  margin-left: 1em;
+}
+
+.invisible{
+ visibility: hidden;
 }
