@@ -33,6 +33,7 @@
 
 .squide-popen, .squide-pclose{
  color: #bbb;
+ margin-right: -0.5em;
 }
 
 .squide-bopen, .squide-bclose{
