@@ -302,6 +302,13 @@
         return obj.valueType(value, "symbol", "text");
     };
 
+    function onTypeSelected(type, button) {
+        var jqElement = obj["$" + type](obj.defaultForType[type]);
+
+        button.before(jqElement);
+        switchActive(jqElement);
+    }
+
     obj.Pair = function (values, options) {
         var
             i, value,
@@ -320,12 +327,6 @@
             widget = obj.fromValue(value);
 
             childs.push(widget);
-        }
-
-        function onTypeSelected(type, button) {
-            var jqElement = obj["$" + type](obj.defaultForType[type]);
-
-            button.before(jqElement);
         }
 
         addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes);
@@ -364,12 +365,6 @@
             widget = obj.fromValue(value);
 
             childs.push(widget);
-        }
-
-        function onTypeSelected(type, button) {
-            var jqElement = obj["$" + type](obj.defaultForType[type]);
-
-            button.before(jqElement);
         }
 
         addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes);
