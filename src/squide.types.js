@@ -402,24 +402,12 @@
                     var
                         $input = $(this),
                         parent = $input.parent(),
-                        cpicker = parent.children(".cPSkin"),
-                        cpickerClose = cpicker.find(".cPClose");
+                        cpicker = parent.children(".cPSkin");
 
                     // if the click was done to hide the color picker then
                     // copy the color from input to the span
                     if (!cpicker.is(":visible")) {
                         copyColor($input);
-                    }
-
-                    // check if it's not the same button we already connected
-                    // an event handler before
-                    if (!cpickerClose.data("squide-mark")) {
-                        cpickerClose
-                            .mousedown(function () {
-                                copyColor($input);
-                                switchActive(parent);
-                            })
-                            .data("squide-mark", true);
                     }
                 };
             }
