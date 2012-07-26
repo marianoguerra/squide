@@ -4,18 +4,18 @@
 
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['jquery', 'json', 'squide.ui', 'jquery.lego', "squim"],
-               function (jQuery, JSON, Ui, _$, Squim) {
+        define(['jquery', 'json', 'squide.ui', 'jquery.lego', 'squim', 'colorPicker'],
+               function (jQuery, JSON, Ui, _$, Squim, mColorPicker) {
             // Also create a global in case some scripts
             // that are loaded still are looking for
             // a global even when an AMD loader is in use.
-            return (root.Squide = factory(jQuery, JSON, Ui, Squim));
+            return (root.Squide = factory(jQuery, JSON, Ui, Squim, mColorPicker));
         });
     } else {
         // Browser globals
-        root.Squide = factory(root.jQuery, root.JSON, root.SquideUi, root.Squim);
+        root.Squide = factory(root.jQuery, root.JSON, root.SquideUi, root.Squim, root.colorPicker);
     }
-}(this, function ($, JSON, Ui, Squim) {
+}(this, function ($, JSON, Ui, Squim, mColorPicker) {
     "use strict";
     var obj = {}, gens, col = {},
         Types = Squim.types,
@@ -261,15 +261,15 @@
         };
     }
 
-    obj.Float = function (value) {
+    obj.Float = function (value, opts) {
         return obj.valueType(value, "float", "number");
     };
 
-    obj.Int = function (value) {
+    obj.Int = function (value, opts) {
         return obj.valueType(value, "int", "number");
     };
 
-    obj.Bool = function (value) {
+    obj.Bool = function (value, opts) {
         return obj.valueType(value.toString(), "bool", null, undefined, {
             "select": {
                 "@type": "bool",
@@ -282,23 +282,66 @@
         });
     };
 
-    obj.Str = function (value) {
+    obj.Str = function (value, opts) {
         var
             quote = token('"', "squide-quote"),
-            valueType = obj.valueType(value, "str", "text");
+            valueType = obj.valueType(value, "str", "text"),
+            span  = valueType.span.$childs[0].span,
+            input = valueType.span.$childs[1].input,
+            result;
+
+        opts = opts || {};
 
         valueType.span["class"] = "squide-inner";
 
-        return {
+        result = {
             "span": {
                 "@type": "str",
                 "class": "squide-value squide-str",
                 "$childs": [quote, valueType, quote]
             }
         };
+
+        if (opts.format === "color") {
+            delete input.$focusout;
+            input.$click = function (event) {
+                mColorPicker.size = 1;
+                mColorPicker(event);
+
+                var
+                    $input = $(this),
+                    parent = $input.parent(),
+                    cpicker = parent.children(".cPSkin"),
+                    cpickerClose = cpicker.find(".cPClose");
+
+                // check if it's not the same button we already connected
+                // an event handler before
+                if (!cpickerClose.data("squide-mark")) {
+                    cpickerClose
+                        .mousedown(function () {
+                            var showItem = parent.find("." + showCls),
+                                text = $input.val(),
+                                bgColor = $input.css("background-color"),
+                                color = $input.css("color");
+
+                            showItem
+                                .text(text)
+                                .css({
+                                    "background-color": bgColor,
+                                    "color": color
+                                });
+
+                            switchActive(parent);
+                        })
+                        .data("squide-mark", true);
+                }
+            };
+        }
+
+        return result;
     };
 
-    obj.Symbol = function (value) {
+    obj.Symbol = function (value, opts) {
         return obj.valueType(value, "symbol", "text");
     };
 
@@ -476,7 +519,7 @@
     };
 
     obj.fromValue = function (value) {
-        var callValue, items;
+        var callValue, items, opts;
 
         if (value instanceof Types.Type) {
             if (value instanceof Types.Pair || value instanceof Types.Nil) {
@@ -490,11 +533,15 @@
             } else {
                 callValue = value.value;
             }
+
+            // create a squim object with the metadata so we can convert the
+            // attributes to javascript objects
+            opts = (new Types.Obj(value.meta)).toJs();
         } else {
             return obj.fromValue(Types.squimify(value));
         }
 
-        return obj.builderFromValue(value)(callValue);
+        return obj.builderFromValue(value)(callValue, opts);
     };
 
     obj.collect = function (node) {

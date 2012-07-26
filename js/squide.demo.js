@@ -15,12 +15,17 @@ require.config({
         "jquery": "http://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.min",
         "json": "http://cdnjs.cloudflare.com/ajax/libs/json2/20110223/json2",
         "legoparser": "http://marianoguerra.github.com/legojs/src/legoparser",
-        "jquery.lego": "http://marianoguerra.github.com/legojs/src/jquery.lego"
+        "jquery.lego": "http://marianoguerra.github.com/legojs/src/jquery.lego",
+
+        "colorPicker": "../src/libs/colorPicker/colorPicker"
     },
 
     shim: {
         json: {
             exports: "JSON"
+        },
+        colorPicker: {
+            exports: "colorPicker"
         }
     }
 });
@@ -45,7 +50,8 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
 
         [":one of", t.$oneOf()],
         ["(nil", "()"],
-        ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))']
+        ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))'],
+        ["(meta data", '(set color "#c00" :{format "color"})']
     ];
 
     $(function () {
@@ -53,6 +59,7 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
 
         $.each(demos, function (index, demo) {
             var name = demo[0],
+                ast,
                 value,
                 demoCont = $("<div>"),
                 getValueButton = $("<button>").html("get value");
@@ -61,7 +68,8 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
                 value = demo[1];
                 name = name.slice(1);
             } else if (name.charAt(0) === "(") {
-                value = $.lego(t.fromValue(Squim.parse(demo[1])));
+                ast = Squim.parse(demo[1]);
+                value = $.lego(t.fromValue(ast));
                 name = name.slice(1);
             } else {
                 value = $.lego(t.fromValue(demo[1]));
