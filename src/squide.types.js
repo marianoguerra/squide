@@ -309,6 +309,23 @@
             }
         };
 
+        function copyColor($input) {
+            var
+                parent = $input.parent(),
+                showItem = parent.find("." + showCls),
+                text = $input.val(),
+                bgColor = $input.css("background-color"),
+                color = $input.css("color");
+
+            showItem
+                .text(text)
+                .css({
+                    "background-color": bgColor,
+                    "color": color
+                });
+
+        }
+
         if (opts) {
             result.span["@meta"] = opts;
 
@@ -324,23 +341,18 @@
                         cpicker = parent.children(".cPSkin"),
                         cpickerClose = cpicker.find(".cPClose");
 
+                    // if the click was done to hide the color picker then
+                    // copy the color from input to the span
+                    if (!cpicker.is(":visible")) {
+                        copyColor($input);
+                    }
+
                     // check if it's not the same button we already connected
                     // an event handler before
                     if (!cpickerClose.data("squide-mark")) {
                         cpickerClose
                             .mousedown(function () {
-                                var showItem = parent.find("." + showCls),
-                                    text = $input.val(),
-                                    bgColor = $input.css("background-color"),
-                                    color = $input.css("color");
-
-                                showItem
-                                    .text(text)
-                                    .css({
-                                        "background-color": bgColor,
-                                        "color": color
-                                    });
-
+                                copyColor($input);
                                 switchActive(parent);
                             })
                             .data("squide-mark", true);
