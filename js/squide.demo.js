@@ -51,7 +51,8 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
         [":one of", t.$oneOf()],
         ["(nil", "()"],
         ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))'],
-        ["(meta data", '(set color "#c00" :{format "color"})']
+        ["(meta data", '(set color "#c00" :{format "color"})'],
+        ["(meta data madness", '(set :{values "builtins"} color :{maxLenght 10} "#c00" :{format "color"})']
     ];
 
     $(function () {

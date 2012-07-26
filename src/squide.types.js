@@ -216,7 +216,9 @@
         return obj.singleType("#ignore", "ignore");
     };
 
-    obj.valueType = function (value, type, inputType, showPart, inputPart) {
+    obj.valueType = function (value, type, inputType, meta, showPart, inputPart) {
+        var result;
+
         if (showPart === undefined) {
             showPart = makeShowPart(value);
         }
@@ -225,7 +227,7 @@
             inputPart = makeInputPart(value, inputType);
         }
 
-        return {
+        result = {
             "span": {
                 "tabindex": 0,
                 "@type": type,
@@ -234,6 +236,12 @@
                 "$childs": [showPart, inputPart]
             }
         };
+
+        if (meta) {
+            result.span["@meta"] = meta;
+        }
+
+        return result;
     };
 
     function option(value, selected) {
@@ -262,15 +270,15 @@
     }
 
     obj.Float = function (value, opts) {
-        return obj.valueType(value, "float", "number");
+        return obj.valueType(value, "float", "number", opts);
     };
 
     obj.Int = function (value, opts) {
-        return obj.valueType(value, "int", "number");
+        return obj.valueType(value, "int", "number", opts);
     };
 
     obj.Bool = function (value, opts) {
-        return obj.valueType(value.toString(), "bool", null, undefined, {
+        return obj.valueType(value.toString(), "bool", null, opts, undefined, {
             "select": {
                 "@type": "bool",
                 "class": join(inactiveCls, editCls),
@@ -290,7 +298,6 @@
             input = valueType.span.$childs[1].input,
             result;
 
-        opts = opts || {};
 
         valueType.span["class"] = "squide-inner";
 
@@ -302,47 +309,52 @@
             }
         };
 
-        if (opts.format === "color") {
-            delete input.$focusout;
-            input.$click = function (event) {
-                mColorPicker.size = 1;
-                mColorPicker(event);
+        if (opts) {
+            result.span["@meta"] = opts;
 
-                var
-                    $input = $(this),
-                    parent = $input.parent(),
-                    cpicker = parent.children(".cPSkin"),
-                    cpickerClose = cpicker.find(".cPClose");
+            if (opts.format === "color") {
+                delete input.$focusout;
+                input.$click = function (event) {
+                    mColorPicker.size = 1;
+                    mColorPicker(event);
 
-                // check if it's not the same button we already connected
-                // an event handler before
-                if (!cpickerClose.data("squide-mark")) {
-                    cpickerClose
-                        .mousedown(function () {
-                            var showItem = parent.find("." + showCls),
-                                text = $input.val(),
-                                bgColor = $input.css("background-color"),
-                                color = $input.css("color");
+                    var
+                        $input = $(this),
+                        parent = $input.parent(),
+                        cpicker = parent.children(".cPSkin"),
+                        cpickerClose = cpicker.find(".cPClose");
 
-                            showItem
-                                .text(text)
-                                .css({
-                                    "background-color": bgColor,
-                                    "color": color
-                                });
+                    // check if it's not the same button we already connected
+                    // an event handler before
+                    if (!cpickerClose.data("squide-mark")) {
+                        cpickerClose
+                            .mousedown(function () {
+                                var showItem = parent.find("." + showCls),
+                                    text = $input.val(),
+                                    bgColor = $input.css("background-color"),
+                                    color = $input.css("color");
 
-                            switchActive(parent);
-                        })
-                        .data("squide-mark", true);
-                }
-            };
+                                showItem
+                                    .text(text)
+                                    .css({
+                                        "background-color": bgColor,
+                                        "color": color
+                                    });
+
+                                switchActive(parent);
+                            })
+                            .data("squide-mark", true);
+                    }
+                };
+            }
         }
+
 
         return result;
     };
 
     obj.Symbol = function (value, opts) {
-        return obj.valueType(value, "symbol", "text");
+        return obj.valueType(value, "symbol", "text", opts);
     };
 
     function onTypeSelected(type, button) {
@@ -357,10 +369,10 @@
             i, value,
             open = token('(', "squide-popen"),
             close = token(')', "squide-pclose"),
-            valueType = obj.valueType(value, "str", "text"),
             childs = [open],
             widget,
-            addButton;
+            addButton,
+            result;
 
         options = options || {};
 
@@ -378,7 +390,7 @@
         childs.push(addButton);
         childs.push(close);
 
-        return {
+        result = {
             "span": {
                 "tabindex": 0,
                 "@type": "pair",
@@ -389,6 +401,8 @@
                 "$childs": childs
             }
         };
+
+        return result;
     };
 
     obj.Block = function (values, options) {
@@ -396,9 +410,8 @@
             i, value,
             open = token('{', "squide-bopen"),
             close = token('}', "squide-bclose"),
-            valueType = obj.valueType(value, "str", "text"),
             childs = [open],
-            widget, addButton;
+            widget, addButton, result;
 
         options = options || {};
 
@@ -416,7 +429,7 @@
         childs.push(addButton);
         childs.push(close);
 
-        return {
+        result = {
             "div": {
                 "tabindex": 0,
                 "@type": "block",
@@ -427,6 +440,8 @@
                 "$childs": childs
             }
         };
+
+        return result;
     };
 
     obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block"];
@@ -577,9 +592,15 @@
 
     col.value = function (node) {
         var
-            value = node.find("." + showCls).text(),
+            item = node.find("." + showCls),
+            value = item.text(),
+            meta = node.data("meta"),
             // TODO: check type is the expected one
             type = Squim.parse(value);
+
+        if (meta) {
+            type.meta = Types.Obj.fromJsObject(meta).attrs;
+        }
 
         return type;
     };
@@ -592,8 +613,13 @@
     col.str = function (node) {
         var
             value = node.find("." + showCls).text(),
+            meta = node.data("meta"),
             // TODO: check type is the expected one
             type = Squim.parse(JSON.stringify(value));
+
+        if (meta) {
+            type.meta = Types.Obj.fromJsObject(meta).attrs;
+        }
 
         return type;
     };
