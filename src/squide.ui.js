@@ -24,6 +24,7 @@
     obj.keys = {
         ESC: 27,
         ENTER: 13,
+        SPACE: 32,
         LEFT: 37,
         UP: 38,
         RIGHT: 39,

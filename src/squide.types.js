@@ -35,24 +35,6 @@
         };
     }
 
-    function typeSelectButton(label, onTypeSelected, values) {
-        values = values || obj.allTypes;
-
-        return button(label, function (event) {
-            var
-                button = $(this),
-                offset = button.offset(),
-                listItems = obj.typesToListItems(values);
-
-            Ui.contextMenu({
-                labels: listItems,
-                callback: function (type) {
-                    onTypeSelected(type, button);
-                }
-            }, offset.top, offset.left + button.width());
-        });
-    }
-
     function switchActive(item) {
         var
             active = item.find("." + activeCls),
@@ -69,6 +51,42 @@
         }
     }
 
+    function onTypeSelected(type, element, removeElement) {
+        var jqElement = obj["$" + type](obj.defaultForType[type]);
+
+        element.before(jqElement);
+
+        if (removeElement) {
+            element.remove();
+        }
+
+        switchActive(jqElement);
+    }
+
+    function typeSelectMenu(x, y, items, callback) {
+        var listItems = obj.typesToListItems(items);
+
+        Ui.contextMenu({
+            labels: listItems,
+            callback: callback
+        }, y, x);
+    }
+
+    function typeSelectButton(label, onTypeSelected, values) {
+        values = values || obj.allTypes;
+
+        return button(label, function (event) {
+            var
+                button = $(this),
+                offset = button.offset();
+
+            typeSelectMenu(offset.left + button.width(), offset.top, values,
+                function (type) {
+                    onTypeSelected(type, button, false);
+                });
+        });
+    }
+
     function onHover(event) {
         var root = $(this);
 
@@ -79,11 +97,35 @@
         }
     }
 
+
+    function itemContextMenu(x, y, element) {
+        Ui.contextMenu({
+            labels: [
+                {label: "Remove", value: "remove"},
+                {label: "Replace", value: "replace"}
+            ],
+            callback: function (type) {
+                switch (type) {
+                case "remove":
+                    element.remove();
+                    break;
+                case "replace":
+                    typeSelectMenu(x, y, obj.allTypes,
+                        function (type) {
+                            onTypeSelected(type, element, true);
+                        });
+                    break;
+                }
+            }
+        }, y, x);
+    }
+
     function onValueKeyUp(event) {
         var
             showWidget,
             value,
             element = $(this),
+            offset,
             active = element.find("." + activeCls + ":first");
 
         if (event.keyCode === Ui.keys.ENTER) {
@@ -119,6 +161,12 @@
                 event.stopPropagation();
                 return false;
             }
+        } else if (event.keyCode === Ui.keys.SPACE) {
+            offset = element.offset();
+
+            itemContextMenu(offset.left + element.width(), offset.top, element);
+            event.stopPropagation();
+            return false;
         }
     }
 
@@ -150,6 +198,16 @@
         };
     }
 
+    // return the element that has the class squide-value, either the passe
+    // argument or the first parent that has it, element is a jquery object
+    function getValueElement(element) {
+        if (element.hasClass("squide-value")) {
+            return element;
+        } else {
+            return element.parents(".squide-value:first");
+        }
+    }
+
     function makeShowPart(value, onClick) {
         onClick = onClick || function () {
             switchActive($(this).parent());
@@ -159,7 +217,13 @@
             "span": {
                 "class": join(activeCls, showCls),
                 "$childs": quote(value || ""),
-                "$click": onClick
+                "$click": onClick,
+                "$contextmenu": function (event) {
+                    if (!event.ctrlKey) {
+                        itemContextMenu(event.pageX, event.pageY, getValueElement($(event.target)));
+                        event.preventDefault();
+                    }
+                }
             }
         };
     }
@@ -369,13 +433,6 @@
         return obj.valueType(value, "symbol", "text", opts);
     };
 
-    function onTypeSelected(type, button) {
-        var jqElement = obj["$" + type](obj.defaultForType[type]);
-
-        button.before(jqElement);
-        switchActive(jqElement);
-    }
-
     obj.Pair = function (values, options) {
         var
             i, value,
@@ -458,16 +515,6 @@
 
     obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block"];
     obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol"];
-
-    obj.oneOf = function (values) {
-        function onTypeSelected(type, button) {
-            var jqElement = obj["$" + type](obj.defaultForType[type]);
-
-            button.replaceWith(jqElement);
-        }
-
-        return typeSelectButton("select", onTypeSelected, values);
-    };
 
     obj.builderFromValue = function (value) {
         var builder, content;
@@ -592,7 +639,7 @@
             .toArray();
     };
 
-    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "oneOf"];
+    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block"];
 
     $.each(gens, function (index, item) {
         obj["$" + item] = function () {
