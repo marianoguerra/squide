@@ -596,9 +596,11 @@
                 callValue = value.value;
             }
 
-            // create a squim object with the metadata so we can convert the
-            // attributes to javascript objects
-            opts = (new Types.Obj(value.meta)).toJs();
+            if (value.meta) {
+                // create a squim object with the metadata so we can convert the
+                // attributes to javascript objects
+                opts = (new Types.Obj(value.meta)).toJs();
+            }
         } else {
             return obj.fromValue(Types.squimify(value));
         }
