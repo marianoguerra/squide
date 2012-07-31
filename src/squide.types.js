@@ -234,7 +234,8 @@
         "Bool": "Boolean",
         "Str": "String",
         "Symbol": "Symbol",
-        "Pair": "List",
+        "Pair": "Expression",
+        "List": "List",
         "Block": "Block"
     };
 
@@ -245,6 +246,7 @@
         "Str": "...",
         "Symbol": "symbol",
         "Pair": [],
+        "List": [],
         "Block": []
     };
 
@@ -421,11 +423,21 @@
         return obj.valueType(value, "symbol", "text", opts);
     };
 
-    obj.Pair = function (values, options) {
+    obj.List = function (values, options) {
+        return obj.Pair(values, options, {
+            open: "[",
+            close: "]",
+            type: "list"
+        });
+    };
+
+    obj.Pair = function (values, options, buildOpts) {
+        buildOpts = buildOpts || {};
+
         var
             i, value,
-            open = token('(', "squide-popen"),
-            close = token(')', "squide-pclose"),
+            open = token(buildOpts.open || '(', "squide-popen"),
+            close = token(buildOpts.close || ')', "squide-pclose"),
             childs = [open],
             widget,
             addButton,
@@ -450,7 +462,7 @@
         result = {
             "span": {
                 "tabindex": 0,
-                "@type": "pair",
+                "@type": buildOpts.type || "pair",
                 "$keyup": onValueKeyUp,
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
@@ -501,7 +513,7 @@
         return result;
     };
 
-    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block"];
+    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block", "List"];
     obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol"];
 
     obj.builderFromValue = function (value) {
@@ -513,6 +525,8 @@
 
                 if (obj.isBlock(value)) {
                     builder = obj.Block;
+                } else if (obj.isList(value)) {
+                    builder = obj.List;
                 } else {
                     builder = obj.Pair;
                 }
@@ -544,7 +558,17 @@
             } else if (typeof value === "number") {
                 builder = obj.Int;
             } else if ($.isArray(value)) {
-                builder = obj.Pair;
+                if (value[0] instanceof RegExp) {
+                    if (value[0].source === "$sequence") {
+                        builder = obj.Block;
+                    } else if (value[0].source === "list") {
+                        builder = obj.List;
+                    } else {
+                        builder = obj.Pair;
+                    }
+                } else {
+                    builder = obj.Pair;
+                }
             } else if (value instanceof RegExp) {
                 content = value.source;
 
@@ -568,17 +592,22 @@
         return builder;
     };
 
-    obj.isBlock = function (value) {
-        if (value instanceof Types.Pair) {
-            if (value.left instanceof Types.Symbol && value.left.value === "$sequence") {
-                return true;
+    obj.isSpecialPair = function (carName) {
+        return function (value) {
+            if (value instanceof Types.Pair) {
+                if (value.left instanceof Types.Symbol && value.left.value === carName) {
+                    return true;
+                } else {
+                    return false;
+                }
             } else {
                 return false;
             }
-        } else {
-            return false;
-        }
+        };
     };
+
+    obj.isBlock = obj.isSpecialPair("$sequence");
+    obj.isList = obj.isSpecialPair("list");
 
     obj.fromValue = function (value) {
         var callValue, items, opts;
@@ -587,7 +616,7 @@
             if (value instanceof Types.Pair || value instanceof Types.Nil) {
                 items = Types.util.pairToArray(value);
 
-                if (obj.isBlock(value)) {
+                if (obj.isBlock(value) || obj.isList(value)) {
                     callValue = items.slice(1);
                 } else {
                     callValue = items;
@@ -629,7 +658,7 @@
             .toArray();
     };
 
-    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block"];
+    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "List"];
 
     $.each(gens, function (index, item) {
         obj["$" + item] = function () {
@@ -688,6 +717,13 @@
     col.block = function (node) {
         var childs = obj.collectChilds(node);
         childs.unshift(new Types.Symbol("$sequence"));
+
+        return Types.util.arrayToPair(childs);
+    };
+
+    col.list = function (node) {
+        var childs = obj.collectChilds(node);
+        childs.unshift(new Types.Symbol("list"));
 
         return Types.util.arrayToPair(childs);
     };

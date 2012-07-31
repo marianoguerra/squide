@@ -43,6 +43,7 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
         ["str", "hello world"],
         ["symbol", /multiply-by-two/],
         ["pair", ["asd", 1, 1.2, false, /symbol/, ["lala", 3, true]]],
+        ["list", [/list/, "asd", 1, 1.2, false]],
         ["block", [/$sequence/, [/write/, "asd", 1, 1.2, false], [/write/, "lala", 3, true]]],
         ["block", [/if/, [/<?/, 1, 2],
                           [/$sequence/, [/write/, "asd", 1, 1.2, false], [/write/, "lala", 3, true]],
@@ -50,6 +51,7 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
 
         ["(nil", "()"],
         ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))'],
+        ["(list from squim", '(list "asd" 1 1.2 #f)'],
         ["(meta data", '(set color "#c00" :{format "color"})'],
         ["(meta data madness", '(set :{values "builtins"} color :{maxLenght 10} "#c00" :{format "color"})']
     ];
