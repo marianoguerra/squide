@@ -52,6 +52,7 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
         ["(nil", "()"],
         ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))'],
         ["(list from squim", '(list "asd" 1 1.2 #f)'],
+        ["(object access", '(foo bar baz) :{hint "objattrs"}'],
         ["(meta data", '(set color "#c00" :{format "color"})'],
         ["(meta data madness", '(set :{values "builtins"} color :{maxLenght 10} "#c00" :{format "color"})']
     ];

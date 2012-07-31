@@ -51,8 +51,12 @@
         }
     }
 
-    function onTypeSelected(type, element, removeElement) {
+    function onTypeSelected(type, element, removeElement, separator) {
         var jqElement = obj["$" + type](obj.defaultForType[type]);
+
+        if (separator) {
+            element.before($.lego(makeSeparator(separator)));
+        }
 
         element.before(jqElement);
 
@@ -72,7 +76,7 @@
         }, y, x);
     }
 
-    function typeSelectButton(label, onTypeSelected, values) {
+    function typeSelectButton(label, onTypeSelected, values, separator) {
         values = values || obj.allTypes;
 
         return button(label, function (event) {
@@ -82,7 +86,7 @@
 
             typeSelectMenu(offset.left + button.width(), offset.top, values,
                 function (type) {
-                    onTypeSelected(type, button, false);
+                    onTypeSelected(type, button, false, separator);
                 });
         });
     }
@@ -236,7 +240,8 @@
         "Symbol": "Symbol",
         "Pair": "Expression",
         "List": "List",
-        "Block": "Block"
+        "Block": "Block",
+        "ObjAttrs": "Object Access"
     };
 
     obj.defaultForType = {
@@ -247,7 +252,8 @@
         "Symbol": "symbol",
         "Pair": [],
         "List": [],
-        "Block": []
+        "Block": [],
+        "ObjAttrs": [/obj/]
     };
 
     obj.typesToListItems = function (types) {
@@ -431,6 +437,27 @@
         });
     };
 
+    obj.ObjAttrs = function (values, options) {
+        options = options || {};
+        options.allowedTypes = ["Symbol"];
+
+        return obj.Pair(values, options, {
+            open: " ",
+            close: " ",
+            type: "objattrs",
+            separator: "."
+        });
+    };
+
+    function makeSeparator(separator) {
+        return {
+            span: {
+                "class": "squide-sep",
+                "$childs": separator
+            }
+        };
+    }
+
     obj.Pair = function (values, options, buildOpts) {
         buildOpts = buildOpts || {};
 
@@ -450,10 +477,14 @@
 
             widget = obj.fromValue(value);
 
+            if (i > 0 && buildOpts.separator) {
+                childs.push(makeSeparator(buildOpts.separator));
+            }
+
             childs.push(widget);
         }
 
-        addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes);
+        addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes, buildOpts.separator);
         addButton.button["class"] = "pair-add-button invisible";
 
         childs.push(addButton);
@@ -517,16 +548,19 @@
     obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol"];
 
     obj.builderFromValue = function (value) {
-        var builder, content;
+        var builder, content, hint;
 
         if (value instanceof Types.Type) {
 
             if (value instanceof Types.Pair || value instanceof Types.Nil) {
+                hint = value.getMetaData("hint");
 
                 if (obj.isBlock(value)) {
                     builder = obj.Block;
                 } else if (obj.isList(value)) {
                     builder = obj.List;
+                } else if (hint && hint.value === "objattrs") {
+                    builder = obj.ObjAttrs;
                 } else {
                     builder = obj.Pair;
                 }
@@ -580,6 +614,8 @@
                     } else {
                         throw "unknown symbol: " + content;
                     }
+                } else if (content.indexOf(".") !== -1) {
+                    builder = obj.ObjAttrs;
                 } else {
                     builder = obj.Symbol;
                 }
@@ -658,7 +694,7 @@
             .toArray();
     };
 
-    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "List"];
+    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "List", "ObjAttrs"];
 
     $.each(gens, function (index, item) {
         obj["$" + item] = function () {
@@ -731,6 +767,16 @@
     col.pair = function (node) {
         var childs = obj.collectChilds(node);
         return Types.util.arrayToPair(childs);
+    };
+
+    col.objattrs = function (node) {
+        var
+            childs = obj.collectChilds(node),
+            pair = Types.util.arrayToPair(childs);
+
+        pair.setMetaData("hint", "objattrs");
+
+        return pair;
     };
 
     obj.collectors = col;
