@@ -82,12 +82,18 @@
         return button(label, function (event) {
             var
                 button = $(this),
+                offset;
+
+            if (values.length === 1) {
+                onTypeSelected(values[0], button, false, separator);
+            } else {
                 offset = button.offset();
 
-            typeSelectMenu(offset.left + button.width(), offset.top, values,
-                function (type) {
-                    onTypeSelected(type, button, false, separator);
-                });
+                typeSelectMenu(offset.left + button.width(), offset.top, values,
+                    function (type) {
+                        onTypeSelected(type, button, false, separator);
+                    });
+            }
         });
     }
 
