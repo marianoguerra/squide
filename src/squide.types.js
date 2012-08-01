@@ -550,8 +550,8 @@
         return result;
     };
 
-    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block", "List"];
-    obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol"];
+    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block", "List", "ObjAttrs"];
+    obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol", "ObjAttrs"];
 
     obj.builderFromValue = function (value) {
         var builder, content, hint;
