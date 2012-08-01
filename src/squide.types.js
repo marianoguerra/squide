@@ -19,6 +19,7 @@
     "use strict";
     var obj = {}, gens, col = {},
         Types = Squim.types,
+        strHintKeyVal = new Types.Str("keyval"),
 
         activeCls = "squide-active",
         inactiveCls = "squide-inactive",
@@ -246,6 +247,7 @@
         "Symbol": "Symbol",
         "Pair": "Expression",
         "List": "List",
+        "Obj": "Object",
         "Block": "Block",
         "ObjAttrs": "Object Access"
     };
@@ -257,9 +259,11 @@
         "Str": "...",
         "Symbol": "symbol",
         "Pair": [],
+        "Obj": [],
         "List": [],
         "Block": [],
-        "ObjAttrs": [/obj/]
+        "ObjAttrs": [/obj/],
+        "KeyVal": [/key/, "val"]
     };
 
     obj.typesToListItems = function (types) {
@@ -464,6 +468,27 @@
         };
     }
 
+    obj.Obj = function (values, options) {
+        options = options || {};
+        options.allowedTypes = ["KeyVal"];
+
+        return obj.Pair(values, options, {
+            open: "{",
+            close: "}",
+            type: "obj"
+        });
+    };
+
+    obj.KeyVal = function (values, options) {
+        return obj.Pair(values, options, {
+            open: " ",
+            close: " ",
+            type: "keyval",
+            separator: ":",
+            hideAddButton: true
+        });
+    };
+
     obj.Pair = function (values, options, buildOpts) {
         buildOpts = buildOpts || {};
 
@@ -490,10 +515,13 @@
             childs.push(widget);
         }
 
-        addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes, buildOpts.separator);
-        addButton.button["class"] = "pair-add-button invisible";
+        if (!buildOpts.hideAddButton) {
+            addButton = typeSelectButton("+", onTypeSelected, options.allowedTypes, buildOpts.separator);
+            addButton.button["class"] = "pair-add-button invisible";
 
-        childs.push(addButton);
+            childs.push(addButton);
+        }
+
         childs.push(close);
 
         result = {
@@ -550,7 +578,7 @@
         return result;
     };
 
-    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block", "List", "ObjAttrs"];
+    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block", "List", "Obj", "ObjAttrs"];
     obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol", "ObjAttrs"];
 
     obj.builderFromValue = function (value) {
@@ -567,6 +595,8 @@
                     builder = obj.List;
                 } else if (hint && hint.value === "objattrs") {
                     builder = obj.ObjAttrs;
+                } else if (hint && hint.value === strHintKeyVal.value) {
+                    builder = obj.KeyVal;
                 } else {
                     builder = obj.Pair;
                 }
@@ -585,6 +615,8 @@
                 builder = obj.Inert;
             } else if (value instanceof Types.Ignore) {
                 builder = obj.Ignore;
+            } else if (value instanceof Types.Obj) {
+                builder = obj.Obj;
             } else {
                 throw "unknown type for item: " + value.toString();
             }
@@ -625,6 +657,8 @@
                 } else {
                     builder = obj.Symbol;
                 }
+            } else if ($.isPlainObject(value)) {
+                builder = obj.Obj;
             } else {
                 throw "unknown value type for: " + value;
             }
@@ -652,7 +686,7 @@
     obj.isList = obj.isSpecialPair("list");
 
     obj.fromValue = function (value) {
-        var callValue, items, opts;
+        var callValue, items, opts, key, val, pair;
 
         if (value instanceof Types.Type) {
             if (value instanceof Types.Pair || value instanceof Types.Nil) {
@@ -663,6 +697,20 @@
                 } else {
                     callValue = items;
                 }
+            } else if (value instanceof Types.Obj)  {
+                callValue = [];
+
+                for (key in value.attrs) {
+                    val = value.attrs[key];
+                    pair = new Types.Pair(
+                        new Types.Symbol(key),
+                        new Types.Pair(val, Types.nil));
+
+                    pair.setMetaData("hint", strHintKeyVal);
+
+                    callValue.push(pair);
+                }
+
             } else {
                 callValue = value.value;
             }
@@ -700,7 +748,7 @@
             .toArray();
     };
 
-    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "List", "ObjAttrs"];
+    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "List", "Obj", "ObjAttrs", "KeyVal"];
 
     $.each(gens, function (index, item) {
         obj["$" + item] = function () {
@@ -761,6 +809,37 @@
         childs.unshift(new Types.Symbol("$sequence"));
 
         return Types.util.arrayToPair(childs);
+    };
+
+    col.obj = function (node) {
+        var
+            i,
+            child,
+            key, val,
+            childs = obj.collectChilds(node),
+            attrs = {};
+
+        console.log("obj childs", childs);
+
+        for (i = 0; i < childs.length; i += 1) {
+            child = childs[i];
+            key = child[0];
+            val = child[1];
+
+            if (key instanceof Types.Symbol && val instanceof Types.Type) {
+                attrs[key.value] = val;
+            }
+            // TODO: signal error or log for invalid key value pairs
+        }
+
+        return new Types.Obj(attrs);
+    };
+
+    col.keyval = function (node) {
+        var childs = obj.collectChilds(node);
+        console.log(childs);
+
+        return [childs];
     };
 
     col.list = function (node) {

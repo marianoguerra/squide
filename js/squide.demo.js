@@ -53,6 +53,8 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
         ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))'],
         ["(list from squim", '(list "asd" 1 1.2 #f)'],
         ["(object access", '(foo bar baz) :{hint "objattrs"}'],
+        ["(object", '{}'],
+        ["(object with attrs", '{name "mariano" age 27}'],
         ["(meta data", '(set color "#c00" :{format "color"})'],
         ["(meta data madness", '(set :{values "builtins"} color :{maxLenght 10} "#c00" :{format "color"})']
     ];
