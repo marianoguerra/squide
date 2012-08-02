@@ -52,6 +52,16 @@
         }
     }
 
+    function makeSeparator(separator) {
+        return {
+            span: {
+                "class": "squide-sep",
+                "$childs": separator
+            }
+        };
+    }
+
+
     function onTypeSelected(type, element, removeElement, separator) {
         var jqElement = obj["$" + type](obj.defaultForType[type]);
 
@@ -249,6 +259,7 @@
         "List": "List",
         "Obj": "Object",
         "Block": "Block",
+        "Assign": "Assignment",
         "ObjAttrs": "Object Access"
     };
 
@@ -263,8 +274,14 @@
         "List": [],
         "Block": [],
         "ObjAttrs": [/obj/],
-        "KeyVal": [/key/, "val"]
+        "KeyVal": [/key/, "val"],
+        "Assign": [/varName/, "value"]
     };
+
+    // more types will be added when building special pairs
+    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Obj", "ObjAttrs"];
+    // specal pairs will be added when generating them
+    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Obj", "ObjAttrs", "KeyVal"];
 
     obj.typesToListItems = function (types) {
         return $.map(types, function (type, index) {
@@ -459,15 +476,6 @@
         });
     };
 
-    function makeSeparator(separator) {
-        return {
-            span: {
-                "class": "squide-sep",
-                "$childs": separator
-            }
-        };
-    }
-
     obj.Obj = function (values, options) {
         options = options || {};
         options.allowedTypes = ["KeyVal"];
@@ -485,6 +493,16 @@
             close: " ",
             type: "keyval",
             separator: ":",
+            hideAddButton: true
+        });
+    };
+
+    obj.Assign = function (values, options) {
+        return obj.Pair(values, options, {
+            open: " ",
+            close: " ",
+            type: "assign",
+            separator: "=",
             hideAddButton: true
         });
     };
@@ -578,25 +596,32 @@
         return result;
     };
 
-    obj.allTypes = ["Int", "Float", "Bool", "Str", "Symbol", "Pair", "Block", "List", "Obj", "ObjAttrs"];
-    obj.allSimpleTypes = ["Int", "Float", "Bool", "Str", "Symbol", "ObjAttrs"];
+    obj.hintBuilders = {
+        "objattrs": obj.ObjAttrs,
+        "keyval": obj.KeyVal
+    };
 
     obj.builderFromValue = function (value) {
-        var builder, content, hint;
+        var builder, content, hint, symbol;
 
         if (value instanceof Types.Type) {
 
             if (value instanceof Types.Pair || value instanceof Types.Nil) {
                 hint = value.getMetaData("hint");
 
-                if (obj.isBlock(value)) {
-                    builder = obj.Block;
+                if (hint && obj.hintBuilders[hint.value]) {
+                    builder = obj.hintBuilders[hint.value];
+                } else if (obj.isSpecialPair(value)) {
+                    symbol = value.left.value;
+
+                    builder = obj.specialPairBuilder[symbol];
+
+                    if (!builder) {
+                        throw "unknown builder for special pair " + symbol;
+                    }
+
                 } else if (obj.isList(value)) {
                     builder = obj.List;
-                } else if (hint && hint.value === "objattrs") {
-                    builder = obj.ObjAttrs;
-                } else if (hint && hint.value === strHintKeyVal.value) {
-                    builder = obj.KeyVal;
                 } else {
                     builder = obj.Pair;
                 }
@@ -631,13 +656,14 @@
                 builder = obj.Int;
             } else if ($.isArray(value)) {
                 if (value[0] instanceof RegExp) {
-                    if (value[0].source === "$sequence") {
-                        builder = obj.Block;
-                    } else if (value[0].source === "list") {
-                        builder = obj.List;
-                    } else {
+                    // check if it's a special pair
+                    builder = obj.specialPairBuilder[value[0].source];
+
+                    // if not, set it to pair
+                    if (builder === undefined) {
                         builder = obj.Pair;
                     }
+
                 } else {
                     builder = obj.Pair;
                 }
@@ -668,7 +694,7 @@
         return builder;
     };
 
-    obj.isSpecialPair = function (carName) {
+    obj.makeIsSpecialPair = function (carName) {
         return function (value) {
             if (value instanceof Types.Pair) {
                 if (value.left instanceof Types.Symbol && value.left.value === carName) {
@@ -682,8 +708,67 @@
         };
     };
 
-    obj.isBlock = obj.isSpecialPair("$sequence");
-    obj.isList = obj.isSpecialPair("list");
+    function makeSpecialPairCollector(symbol) {
+        return function (node) {
+            var childs = obj.collectChilds(node);
+            childs.unshift(new Types.Symbol(symbol));
+
+            return Types.util.arrayToPair(childs);
+        };
+    }
+
+    // name of the special pair and symbol that should appear as the car to
+    // be of that type
+    obj.specialPairs = {
+        "Block": "$sequence",
+        "List": "list",
+        "Assign": "set"
+    };
+
+    // will be filled below
+    obj.specialPairBuilder = {};
+
+    // list of all the functions to check if a pair is special
+    obj.specialPairsCheckers = [];
+
+    $.map(obj.specialPairs, function (symbol, name) {
+        var
+            checker = obj.makeIsSpecialPair(symbol),
+            colectorName = name.toLowerCase();
+
+        // build the checkers like obj.isBlock
+        obj["is" + name] = checker;
+
+        // build a map with the car symbol as key (like $sequence) and the
+        // builder as value (used to find a builder for a special pair
+        obj.specialPairBuilder[symbol] = obj[name];
+
+        // add the checker to the list of all checkers to be used by isSpecialPair
+        obj.specialPairsCheckers.push(checker);
+
+        // build the collector, it will be col[colectorName] (for example
+        // col.block or col.list)
+        col[colectorName] = makeSpecialPairCollector(symbol);
+
+        // add the type name to the list of all types
+        obj.allTypes.push(name);
+
+        gens.push(name);
+    });
+
+    obj.isSpecialPair = function (value) {
+        var i, checker;
+
+        for (i = 0; i < obj.specialPairsCheckers.length; i += 1) {
+            checker = obj.specialPairsCheckers[i];
+
+            if (checker(value)) {
+                return true;
+            }
+        }
+
+        return false;
+    };
 
     obj.fromValue = function (value) {
         var callValue, items, opts, key, val, pair;
@@ -692,11 +777,12 @@
             if (value instanceof Types.Pair || value instanceof Types.Nil) {
                 items = Types.util.pairToArray(value);
 
-                if (obj.isBlock(value) || obj.isList(value)) {
+                if (obj.isSpecialPair(value)) {
                     callValue = items.slice(1);
                 } else {
                     callValue = items;
                 }
+
             } else if (value instanceof Types.Obj)  {
                 callValue = [];
 
@@ -748,8 +834,8 @@
             .toArray();
     };
 
-    gens = ["Int", "Float", "Bool", "Str", "Symbol", "Inert", "Ignore", "Pair", "fromValue", "Block", "List", "Obj", "ObjAttrs", "KeyVal"];
-
+    // generate the functions that will return a jquery object with the
+    // content of each type
     $.each(gens, function (index, item) {
         obj["$" + item] = function () {
             var result = obj[item].apply(null, $.makeArray(arguments));
@@ -804,13 +890,6 @@
         }
     };
 
-    col.block = function (node) {
-        var childs = obj.collectChilds(node);
-        childs.unshift(new Types.Symbol("$sequence"));
-
-        return Types.util.arrayToPair(childs);
-    };
-
     col.obj = function (node) {
         var
             i,
@@ -818,8 +897,6 @@
             key, val,
             childs = obj.collectChilds(node),
             attrs = {};
-
-        console.log("obj childs", childs);
 
         for (i = 0; i < childs.length; i += 1) {
             child = childs[i];
@@ -837,16 +914,8 @@
 
     col.keyval = function (node) {
         var childs = obj.collectChilds(node);
-        console.log(childs);
 
         return [childs];
-    };
-
-    col.list = function (node) {
-        var childs = obj.collectChilds(node);
-        childs.unshift(new Types.Symbol("list"));
-
-        return Types.util.arrayToPair(childs);
     };
 
     col.pair = function (node) {
