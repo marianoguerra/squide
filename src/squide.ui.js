@@ -43,6 +43,8 @@
             } else if (event.keyCode === keys.ESC) {
                 if (onQuit) {
                     onQuit();
+                    event.stopPropagation();
+                    return false;
                 }
             } else if (event.keyCode === keys.ENTER) {
                 if (onSearch) {
@@ -57,7 +59,7 @@
             }
         };
 
-        jqObj.keyup(onSearchEvent).on("search", onSearchEvent);
+        jqObj.keydown(onSearchEvent).on("search", onSearchEvent);
     };
 
     obj.contextMenu = function (options, top, left) {
