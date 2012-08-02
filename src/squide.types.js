@@ -28,6 +28,10 @@
         showCls = "squide-show",
         quoteItemHelper = $("<div>");
 
+    function error(msg) {
+        alert(msg);
+    }
+
     function button(label, onClick) {
         return {
             "button": {
@@ -119,11 +123,63 @@
         }
     }
 
+    function escape(text) {
+        var el = document.createElement("textarea");
+        el.innerHTML = text;
+
+        return el.innerHTML;
+    }
+
+    function rawEdit(element) {
+        var
+            code = obj.collect(element).toString(),
+            $editor,
+            editor = {
+                "div": {
+                    "class": "squide-raw-editor",
+                    "$childs": [
+                        {
+                            "textarea": {
+                                "rows": 4,
+                                "$childs": escape(code)
+                            }
+                        },
+                        {
+                            "button": {
+                                "class": "squide-raw-editor-save",
+                                "$click": function () {
+                                    var newCode = $editor.find("textarea").val(),
+                                        ast, newElement;
+
+                                    try {
+                                        ast = Squim.parse(newCode);
+                                        newElement = $.lego(obj.fromValue(ast));
+
+                                        $editor.remove();
+                                        element.replaceWith(newElement);
+                                    } catch (err) {
+                                        error("invalid code");
+                                    }
+
+                                },
+                                "$childs": "Save"
+                            }
+                        }
+                    ]
+                }
+            };
+
+        $editor = $.lego(editor);
+        element.hide();
+        $editor.insertBefore(element);
+    }
+
     function itemContextMenu(x, y, element) {
         Ui.contextMenu({
             labels: [
                 {label: "Remove", value: "remove"},
-                {label: "Replace", value: "replace"}
+                {label: "Replace", value: "replace"},
+                {label: "Raw Edit", value: "rawedit"}
             ],
             callback: function (type) {
                 switch (type) {
@@ -135,6 +191,9 @@
                         function (type) {
                             onTypeSelected(type, element, true);
                         });
+                    break;
+                case "rawedit":
+                    rawEdit(element);
                     break;
                 }
             }
@@ -604,6 +663,7 @@
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
                 "$keydown": onValueKeyDown,
+                "$contextmenu": onRightClick,
                 "class": "squide-block squide-value",
                 "$childs": childs
             }

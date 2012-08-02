@@ -99,3 +99,19 @@
 .invisible{
  visibility: hidden;
 }
+.squide-raw-editor{
+ margin: 0;
+ padding: 0;
+ display: table;
+ width: 100%;
+}
+
+.squide-raw-editor textarea{
+ width: 99%;
+ margin: auto;
+}
+
+.squide-raw-editor-save{
+ margin-top: 1em;
+ float: right;
+}
