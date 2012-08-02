@@ -52,6 +52,7 @@ require(['squide', 'jquery', 'squim'], function (Squide, $, Squim) {
         ["(nil", "()"],
         ["(from squim", '(if (<? 1 2) ($sequence (write "asd" 1 1.2 #f) (write "lala" 3 #t)) ($sequence (write "asd") (+ 1 2)))'],
         ["(assign from squim", '(set name "mariano")'],
+        ["(comparison from squim", '(< age 28) :{hint "compare"}'],
         ["(list from squim", '(list "asd" 1 1.2 #f)'],
         ["(object access", '(foo bar baz) :{hint "objattrs"}'],
         ["(object", '{}'],

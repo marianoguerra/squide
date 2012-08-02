@@ -20,6 +20,7 @@
     var obj = {}, gens, col = {},
         Types = Squim.types,
         strHintKeyVal = new Types.Str("keyval"),
+        strHintCompare = new Types.Str("compare"),
 
         activeCls = "squide-active",
         inactiveCls = "squide-inactive",
@@ -260,6 +261,7 @@
         "Obj": "Object",
         "Block": "Block",
         "Assign": "Assignment",
+        "Compare": "Comparison",
         "ObjAttrs": "Object Access"
     };
 
@@ -275,7 +277,8 @@
         "Block": [],
         "ObjAttrs": [/obj/],
         "KeyVal": [/key/, "val"],
-        "Assign": [/varName/, "value"]
+        "Assign": [/varName/, "value"],
+        "Compare": [/var/, /</, 42]
     };
 
     // more types will be added when building special pairs
@@ -507,6 +510,15 @@
         });
     };
 
+    obj.Compare = function (values, options) {
+        return obj.Pair(values, options, {
+            open: "(",
+            close: ")",
+            type: "compare",
+            hideAddButton: true
+        });
+    };
+
     obj.Pair = function (values, options, buildOpts) {
         buildOpts = buildOpts || {};
 
@@ -602,7 +614,7 @@
     };
 
     obj.builderFromValue = function (value) {
-        var builder, content, hint, symbol;
+        var builder, content, hint;
 
         if (value instanceof Types.Type) {
 
@@ -612,12 +624,10 @@
                 if (hint && obj.hintBuilders[hint.value]) {
                     builder = obj.hintBuilders[hint.value];
                 } else if (obj.isSpecialPair(value)) {
-                    symbol = value.left.value;
-
-                    builder = obj.specialPairBuilder[symbol];
+                    builder = obj.getBuilderForSpecialPair(value);
 
                     if (!builder) {
-                        throw "unknown builder for special pair " + symbol;
+                        throw "unknown builder for special pair " + value.toString();
                     }
 
                 } else if (obj.isList(value)) {
@@ -694,11 +704,23 @@
         return builder;
     };
 
-    obj.makeIsSpecialPair = function (carName) {
+    obj.makeIsSpecialPair = function (carName, hint) {
         return function (value) {
+            var hintValue;
+
             if (value instanceof Types.Pair) {
-                if (value.left instanceof Types.Symbol && value.left.value === carName) {
-                    return true;
+                if (carName !== null) {
+                    if (value.left instanceof Types.Symbol && value.left.value === carName) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                } else if (hint !== null) {
+                    hintValue = value.getMetaData("hint");
+
+                    if (hintValue && hintValue.value == hint) {
+                        return true;
+                    }
                 } else {
                     return false;
                 }
@@ -708,32 +730,116 @@
         };
     };
 
-    function makeSpecialPairCollector(symbol) {
+    function makeSpecialPairCollector(symbol, name) {
+        var childFixer = obj.specialPairsChildOutputFixers[name];
+
+        if (childFixer === undefined) {
+            throw "no child fixer for special pair " + name;
+        }
+
         return function (node) {
             var childs = obj.collectChilds(node);
+
+            return childFixer(childs);
+        };
+    }
+
+    // name of the special pair as key
+    // and a two item array with the symbol that should appear as the car
+    // (or null to avoid the check) as first element
+    // and the metadata hint as second element (or null)
+    // to check if a pair is of that type
+    // recommendation: use one or the other to avoid weird logic
+    obj.specialPairs = {
+        "Block": ["$sequence", null],
+        "List": ["list", null],
+        "Assign": ["set", null],
+        "Compare": [null, "compare"]
+    };
+
+    // build a function that when invoked with an array of squim types will
+    // insert a symbol with value *symbol* as the first item and return
+    // the resulting array
+    obj.makeCarSymbolInserter = function (symbol) {
+        return function (childs) {
             childs.unshift(new Types.Symbol(symbol));
 
             return Types.util.arrayToPair(childs);
         };
+    };
+
+    // put the second item as the first item, used to convert a infix expression
+    // into a prefix expression, for example (a < 2) will become (< a 2)
+    function makePrefixFromTriplet(childs) {
+        var
+            first = childs[0],
+            second = childs[1],
+            pair;
+
+        childs[0] = second;
+        childs[1] = first;
+
+        pair = Types.util.arrayToPair(childs);
+
+        pair.setMetaData("hint", strHintCompare);
+
+        return pair;
     }
 
-    // name of the special pair and symbol that should appear as the car to
-    // be of that type
-    obj.specialPairs = {
-        "Block": "$sequence",
-        "List": "list",
-        "Assign": "set"
+    function removeCar(items) {
+        return items.slice(1);
+    }
+
+    function switchFirstTwo(items) {
+        var
+            first = items[0],
+            second = items[1];
+
+        items[0] = second;
+        items[1] = first;
+
+        return items;
+    }
+
+    obj.getSpecialPairCallValues = function (pair, items) {
+        var type = obj.getSpecialPairType(pair);
+
+        return obj.specialPairsChildInputFixers[type](items);
+    };
+
+    // functions that will manipulate the input items to generate the
+    // valid input for the builder
+    // the input is an array of items
+    obj.specialPairsChildInputFixers = {
+        "Block": removeCar,
+        "List": removeCar,
+        "Assign": removeCar,
+        "Compare": switchFirstTwo
+    };
+
+    // functions that will manipulate the collected items to generate the
+    // squim valid representation
+    obj.specialPairsChildOutputFixers = {
+        "Block": obj.makeCarSymbolInserter(obj.specialPairs.Block[0]),
+        "List": obj.makeCarSymbolInserter(obj.specialPairs.List[0]),
+        "Assign": obj.makeCarSymbolInserter(obj.specialPairs.Assign[0]),
+        "Compare": makePrefixFromTriplet
     };
 
     // will be filled below
     obj.specialPairBuilder = {};
 
     // list of all the functions to check if a pair is special
-    obj.specialPairsCheckers = [];
+    obj.specialPairsCheckers = {};
 
-    $.map(obj.specialPairs, function (symbol, name) {
+    $.map(obj.specialPairs, function (args, name) {
         var
-            checker = obj.makeIsSpecialPair(symbol),
+            symbol = args[0],
+            hint = args[1],
+            // one of the two should be non null, if both are non null then
+            // it will be weird
+            builderName = symbol || hint,
+            checker = obj.makeIsSpecialPair(symbol, hint),
             colectorName = name.toLowerCase();
 
         // build the checkers like obj.isBlock
@@ -741,14 +847,14 @@
 
         // build a map with the car symbol as key (like $sequence) and the
         // builder as value (used to find a builder for a special pair
-        obj.specialPairBuilder[symbol] = obj[name];
+        obj.specialPairBuilder[builderName] = obj[name];
 
         // add the checker to the list of all checkers to be used by isSpecialPair
-        obj.specialPairsCheckers.push(checker);
+        obj.specialPairsCheckers[name] = checker;
 
         // build the collector, it will be col[colectorName] (for example
         // col.block or col.list)
-        col[colectorName] = makeSpecialPairCollector(symbol);
+        col[colectorName] = makeSpecialPairCollector(symbol, name);
 
         // add the type name to the list of all types
         obj.allTypes.push(name);
@@ -756,18 +862,43 @@
         gens.push(name);
     });
 
-    obj.isSpecialPair = function (value) {
-        var i, checker;
+    obj.getBuilderForSpecialPair = function (value) {
+        var
+            symbol,
+            car = value.left,
+            hint = value.getMetaData("hint");
 
-        for (i = 0; i < obj.specialPairsCheckers.length; i += 1) {
-            checker = obj.specialPairsCheckers[i];
+        // if it has a hint and that hint has a builder
+        if (hint && obj.specialPairBuilder[hint.value]) {
+            return obj.specialPairBuilder[hint.value];
+        } else if (value.left instanceof Types.Symbol) {
+            // if the first item of the pair is a symbol and there's
+            // a builder for the value of that symbol
+            symbol = value.left.value;
+
+            return obj.specialPairBuilder[symbol];
+        } else {
+            // not found
+            return null;
+        }
+    };
+
+    obj.isSpecialPair = function (value) {
+        return !!obj.getSpecialPairType(value);
+    };
+
+    obj.getSpecialPairType = function (value) {
+        var type, checker;
+
+        for (type in obj.specialPairsCheckers) {
+            checker = obj.specialPairsCheckers[type];
 
             if (checker(value)) {
-                return true;
+                return type;
             }
         }
 
-        return false;
+        return null;
     };
 
     obj.fromValue = function (value) {
@@ -778,7 +909,7 @@
                 items = Types.util.pairToArray(value);
 
                 if (obj.isSpecialPair(value)) {
-                    callValue = items.slice(1);
+                    callValue = obj.getSpecialPairCallValues(value, items);
                 } else {
                     callValue = items;
                 }
