@@ -72,6 +72,7 @@
                 cont.remove();
                 options.callback(item);
                 event.preventDefault();
+                return false;
             };
         }
 

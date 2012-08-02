@@ -119,7 +119,6 @@
         }
     }
 
-
     function itemContextMenu(x, y, element) {
         Ui.contextMenu({
             labels: [
@@ -142,7 +141,7 @@
         }, y, x);
     }
 
-    function onValueKeyDown(event) {
+    function onValueKeyUp(event) {
         var
             showWidget,
             value,
@@ -169,6 +168,7 @@
 
                 // event propagating the event to parents
                 event.stopPropagation();
+                event.preventDefault();
                 return false;
             }
         } else if (event.keyCode === Ui.keys.DEL) {
@@ -230,6 +230,14 @@
         }
     }
 
+    function onRightClick(event) {
+        if (!event.ctrlKey) {
+            itemContextMenu(event.pageX, event.pageY, getValueElement($(event.target)));
+            event.preventDefault();
+            return false;
+        }
+    }
+
     function makeShowPart(value, onClick) {
         onClick = onClick || function () {
             switchActive($(this).parent());
@@ -240,12 +248,7 @@
                 "class": join(activeCls, showCls),
                 "$childs": quote(value || ""),
                 "$click": onClick,
-                "$contextmenu": function (event) {
-                    if (!event.ctrlKey) {
-                        itemContextMenu(event.pageX, event.pageY, getValueElement($(event.target)));
-                        event.preventDefault();
-                    }
-                }
+                "$contextmenu": onRightClick
             }
         };
     }
@@ -333,7 +336,7 @@
             "span": {
                 "tabindex": 0,
                 "@type": type,
-                "$keydown": onValueKeyDown,
+                "$keyup": onValueKeyUp,
                 "class": "squide-" + type + " squide-value",
                 "$childs": [showPart, inputPart]
             }
@@ -558,9 +561,10 @@
             "span": {
                 "tabindex": 0,
                 "@type": buildOpts.type || "pair",
-                "$keydown": onValueKeyDown,
+                "$keyup": onValueKeyUp,
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
+                "$contextmenu": onRightClick,
                 "class": "squide-pair squide-value",
                 "$childs": childs
             }
@@ -599,7 +603,7 @@
                 "@type": "block",
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
-                "$keydown": onValueKeyDown,
+                "$keyup": onValueKeyUp,
                 "class": "squide-block squide-value",
                 "$childs": childs
             }
