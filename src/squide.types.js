@@ -141,7 +141,7 @@
         }, y, x);
     }
 
-    function onValueKeyUp(event) {
+    function onValueKeyDown(event) {
         var
             showWidget,
             value,
@@ -336,7 +336,7 @@
             "span": {
                 "tabindex": 0,
                 "@type": type,
-                "$keyup": onValueKeyUp,
+                "$keydown": onValueKeyDown,
                 "class": "squide-" + type + " squide-value",
                 "$childs": [showPart, inputPart]
             }
@@ -561,7 +561,7 @@
             "span": {
                 "tabindex": 0,
                 "@type": buildOpts.type || "pair",
-                "$keyup": onValueKeyUp,
+                "$keydown": onValueKeyDown,
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
                 "$contextmenu": onRightClick,
@@ -603,7 +603,7 @@
                 "@type": "block",
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
-                "$keyup": onValueKeyUp,
+                "$keydown": onValueKeyDown,
                 "class": "squide-block squide-value",
                 "$childs": childs
             }
