@@ -25,8 +25,7 @@
         activeCls = "squide-active",
         inactiveCls = "squide-inactive",
         editCls = "squide-editor",
-        showCls = "squide-show",
-        quoteItemHelper = $("<div>");
+        showCls = "squide-show";
 
     function error(msg) {
         alert(msg);
@@ -264,10 +263,6 @@
         return Array.prototype.join.apply(arguments, [" "]);
     }
 
-    function quote(txt) {
-        return quoteItemHelper.text(txt).html();
-    }
-
     function makeInputPart(value, type) {
         return {
             "input": {
@@ -305,7 +300,7 @@
         return {
             "span": {
                 "class": join(activeCls, showCls),
-                "$childs": quote(value || ""),
+                "$childs": escape(value || ""),
                 "$click": onClick,
                 "$contextmenu": onRightClick
             }
