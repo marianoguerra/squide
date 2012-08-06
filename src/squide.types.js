@@ -1,4 +1,4 @@
-/*global define*/
+/*global define document alert*/
 (function (root, factory) {
     "use strict";
 
@@ -777,7 +777,7 @@
                 } else if (hint !== null) {
                     hintValue = value.getMetaData("hint");
 
-                    if (hintValue && hintValue.value == hint) {
+                    if (hintValue && hintValue.value === hint) {
                         return true;
                     }
                 } else {

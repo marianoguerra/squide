@@ -183,7 +183,5 @@
         filter.focus().select();
     };
 
-    window.SUI = obj;
-
     return obj;
 }));
