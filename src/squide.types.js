@@ -267,6 +267,11 @@
         return {
             "input": {
                 "$focusout": onInputFocusOut,
+                "$keydown": function (event) {
+                    if (event.keyCode === Ui.keys.SPACE) {
+                        event.stopPropagation();
+                    }
+                },
                 "class": join(inactiveCls, editCls),
                 "value": value || "",
                 "type": type
