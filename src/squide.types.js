@@ -298,6 +298,13 @@
     }
 
     function makeShowPart(value, onClick) {
+
+        if (value === undefined) {
+            value = "";
+        } else {
+            value = value.toString();
+        }
+
         onClick = onClick || function () {
             switchActive($(this).parent());
         };
@@ -305,7 +312,7 @@
         return {
             "span": {
                 "class": join(activeCls, showCls),
-                "$childs": escape(value || ""),
+                "$childs": escape(value),
                 "$click": onClick,
                 "$contextmenu": onRightClick
             }
