@@ -122,16 +122,25 @@
         }
     }
 
-    function escape(text) {
-        var el = document.createElement("textarea");
+    function escape(str) {
+        // TODO: the one above is not completely safe, but the one below returns HTML entities in hex as their unicode character
+        // which breaks if encodings change somewhere
+        /*var el = document.createElement("textarea");
         el.innerHTML = text;
 
-        return el.innerHTML;
+        return el.innerHTML;*/
+
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
     }
 
     function rawEdit(element) {
         var
-            code = obj.collect(element).toString(),
+            code = escape(obj.collect(element).toString()),
             $editor,
             editor = {
                 "div": {
@@ -140,7 +149,7 @@
                         {
                             "textarea": {
                                 "rows": 4,
-                                "$childs": escape(code)
+                                "$childs": code
                             }
                         },
                         {
