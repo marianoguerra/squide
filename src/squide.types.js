@@ -538,7 +538,7 @@
     };
 
     obj.List = function (values, options) {
-        return obj.Pair(values, options, {
+        return obj._Pair(values, options, {
             open: "[",
             close: "]",
             type: "list"
@@ -549,9 +549,7 @@
         options = options || {};
         options.allowedTypes = ["Symbol"];
 
-        return obj.Pair(values, options, {
-            open: " ",
-            close: " ",
+        return obj._Pair(values, options, {
             type: "objattrs",
             separator: "."
         });
@@ -561,7 +559,7 @@
         options = options || {};
         options.allowedTypes = ["KeyVal"];
 
-        return obj.Pair(values, options, {
+        return obj._Pair(values, options, {
             open: "{",
             close: "}",
             type: "obj"
@@ -569,9 +567,7 @@
     };
 
     obj.KeyVal = function (values, options) {
-        return obj.Pair(values, options, {
-            open: " ",
-            close: " ",
+        return obj._Pair(values, options, {
             type: "keyval",
             separator: ":",
             hideAddButton: true
@@ -579,9 +575,7 @@
     };
 
     obj.Assign = function (values, options) {
-        return obj.Pair(values, options, {
-            open: " ",
-            close: " ",
+        return obj._Pair(values, options, {
             type: "assign",
             separator: "=",
             hideAddButton: true
@@ -589,7 +583,7 @@
     };
 
     obj.Compare = function (values, options) {
-        return obj.Pair(values, options, {
+        return obj._Pair(values, options, {
             open: "(",
             close: ")",
             type: "compare",
@@ -597,19 +591,31 @@
         });
     };
 
-    obj.Pair = function (values, options, buildOpts) {
+    obj.Pair = function (values, options) {
+        return obj._Pair(values, options, {
+            open: "(",
+            close: ")",
+            type: "pair"
+        });
+    };
+
+    obj._Pair = function (values, options, buildOpts) {
         buildOpts = buildOpts || {};
 
         var
             i, value,
-            open = token(buildOpts.open || '(', "squide-popen"),
-            close = token(buildOpts.close || ')', "squide-pclose"),
-            childs = [open],
+            childs,
             widget,
             addButton,
             result;
 
         options = options || {};
+
+        if (buildOpts.open !== undefined) {
+            childs = [token(buildOpts.open, "squide-popen")];
+        } else {
+            childs = [];
+        }
 
         for (i = 0; i < values.length; i += 1) {
             value = values[i];
@@ -630,7 +636,9 @@
             childs.push(addButton);
         }
 
-        childs.push(close);
+        if (buildOpts.close !== undefined) {
+            childs.push(token(buildOpts.close, "squide-pclose"));
+        }
 
         result = {
             "span": {

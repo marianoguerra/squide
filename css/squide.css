@@ -1,15 +1,15 @@
 .squide-value{
- margin: 2px 0.5em;
- padding: 2px;
+ margin: 1px 0.5em;
+ padding: 1px;
 }
 
 .squide-value:hover{
  border: 1px solid #eee;
- padding: 1px;
+ padding: 0px;
 }
 
 .squide-pair, .squide-block{
- margin: 0.5em;
+ margin: 0.1em;
  display: block;
  margin-left: 1em;
 }
