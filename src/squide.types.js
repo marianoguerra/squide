@@ -182,6 +182,7 @@
         $editor.insertBefore(element);
     }
 
+    // element must be a squide-value
     function itemContextMenu(x, y, element) {
         Ui.contextMenu({
             labels: [
@@ -192,7 +193,10 @@
             callback: function (type) {
                 switch (type) {
                 case "remove":
-                    element.remove();
+                    if (!element.parent().hasClass("squide-fixed-pair")) {
+                        element.remove();
+                    }
+
                     break;
                 case "replace":
                     typeSelectMenu(x, y, obj.allTypes,
@@ -208,12 +212,23 @@
         }, y, x);
     }
 
+    // return the element that has the class squide-value, either the passe
+    // argument or the first parent that has it, element is a jquery object
+    function getValueElement(element) {
+        if (element.hasClass("squide-value")) {
+            return element;
+        } else {
+            return element.parents(".squide-value:first");
+        }
+    }
+
     function onValueKeyDown(event) {
         var
-            showWidget,
             value,
-            element = $(this),
             offset,
+            showWidget,
+            valueElement,
+            element = $(this),
             active = element.find("." + activeCls + ":first");
 
         if (event.keyCode === Ui.keys.ENTER) {
@@ -240,10 +255,10 @@
             }
         } else if (event.keyCode === Ui.keys.DEL) {
             if (active.hasClass(showCls)) {
-                if (element.hasClass("squide-value")) {
-                    element.remove();
-                } else {
-                    element.parents(".squide-value:first").remove();
+                valueElement = getValueElement(element);
+
+                if (!valueElement.parent().hasClass("squide-fixed-pair")) {
+                    valueElement.remove();
                 }
 
                 // event propagating the event to parents
@@ -253,7 +268,10 @@
         } else if (event.keyCode === Ui.keys.SPACE) {
             offset = element.offset();
 
-            itemContextMenu(offset.left + element.width(), offset.top, element);
+            itemContextMenu(offset.left + element.width(),
+                            offset.top,
+                            getValueElement(element));
+
             event.stopPropagation();
             return false;
         }
@@ -286,16 +304,6 @@
                 "type": type
             }
         };
-    }
-
-    // return the element that has the class squide-value, either the passe
-    // argument or the first parent that has it, element is a jquery object
-    function getValueElement(element) {
-        if (element.hasClass("squide-value")) {
-            return element;
-        } else {
-            return element.parents(".squide-value:first");
-        }
     }
 
     function onRightClick(event) {
@@ -570,7 +578,8 @@
         return obj._Pair(values, options, {
             type: "keyval",
             separator: ":",
-            hideAddButton: true
+            hideAddButton: true,
+            fixed: true
         });
     };
 
@@ -578,7 +587,8 @@
         return obj._Pair(values, options, {
             type: "assign",
             separator: "=",
-            hideAddButton: true
+            hideAddButton: true,
+            fixed: true
         });
     };
 
@@ -587,7 +597,8 @@
             open: "(",
             close: ")",
             type: "compare",
-            hideAddButton: true
+            hideAddButton: true,
+            fixed: true
         });
     };
 
@@ -607,9 +618,14 @@
             childs,
             widget,
             addButton,
-            result;
+            result,
+            extraClasses = "";
 
         options = options || {};
+
+        if (buildOpts.fixed) {
+            extraClasses += " squide-fixed-pair";
+        }
 
         if (buildOpts.open !== undefined) {
             childs = [token(buildOpts.open, "squide-popen")];
@@ -648,7 +664,7 @@
                 "$mouseenter": onHover,
                 "$mouseleave": onHover,
                 "$contextmenu": onRightClick,
-                "class": "squide-pair squide-value",
+                "class": "squide-pair squide-value" + extraClasses,
                 "$childs": childs
             }
         };
