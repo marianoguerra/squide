@@ -4,18 +4,18 @@
 
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['jquery', 'json', 'jquery.lego'],
-               function (jQuery, JSON, _$) {
+        define(['jquery', 'jquery.lego'],
+               function (jQuery, _$) {
             // Also create a global in case some scripts
             // that are loaded still are looking for
             // a global even when an AMD loader is in use.
-            return (root.SquideUi = factory(jQuery, JSON));
+            return (root.SquideUi = factory(jQuery));
         });
     } else {
         // Browser globals
-        root.SquideUi = factory(root.jQuery, root.JSON);
+        root.SquideUi = factory(root.jQuery);
     }
-}(this, function ($, JSON) {
+}(this, function ($) {
     "use strict";
     var obj = {}, body = $("body"),
         itemSelected = "list-item-selected",

@@ -1,21 +1,21 @@
-/*global define document alert*/
+/*global define document alert JSON*/
 (function (root, factory) {
     "use strict";
 
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
-        define(['jquery', 'json', 'squide.ui', 'jquery.lego', 'squim', 'colorPicker'],
-               function (jQuery, JSON, Ui, _$, Squim, mColorPicker) {
+        define(['jquery', 'squide.ui', 'jquery.lego', 'squim', 'colorPicker'],
+               function (jQuery, Ui, _$, Squim, mColorPicker) {
             // Also create a global in case some scripts
             // that are loaded still are looking for
             // a global even when an AMD loader is in use.
-            return (root.Squide = factory(jQuery, JSON, Ui, Squim, mColorPicker));
+            return (root.Squide = factory(jQuery, Ui, Squim, mColorPicker));
         });
     } else {
         // Browser globals
-        root.Squide = factory(root.jQuery, root.JSON, root.SquideUi, root.Squim, root.colorPicker);
+        root.Squide = factory(root.jQuery, root.SquideUi, root.Squim, root.colorPicker);
     }
-}(this, function ($, JSON, Ui, Squim, mColorPicker) {
+}(this, function ($, Ui, Squim, mColorPicker) {
     "use strict";
     var obj = {}, gens, col = {},
         Types = Squim.types,
